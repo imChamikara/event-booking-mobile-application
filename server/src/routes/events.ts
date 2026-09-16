@@ -91,7 +91,9 @@ router.post('/', requireAuth, requireRole('organizer'), validate(createEventSche
   const id = crypto.randomUUID();
   const created_at = new Date().toISOString();
   const data = req.body;
-  
+
+  console.log('Creating event:', { ...data, organizer_id: req.user!.id });
+
   try {
     db.prepare(`
       INSERT INTO events (id, organizer_id, title, description, image_url, category, starts_at, ends_at, venue, address, latitude, longitude, price, total_seats, booked_seats, status, created_at)
@@ -99,9 +101,11 @@ router.post('/', requireAuth, requireRole('organizer'), validate(createEventSche
     `).run(id, req.user!.id, data.title, data.description, data.image_url, data.category, data.starts_at, data.ends_at, data.venue, data.address, data.latitude, data.longitude, data.price, data.total_seats, data.status, created_at);
     
     const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+    console.log('Event created successfully:', id);
     res.status(201).json({ success: true, data: event });
   } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create event' } });
+    console.error('Failed to create event:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create event: ' + (error as any).message } });
   }
 });
 

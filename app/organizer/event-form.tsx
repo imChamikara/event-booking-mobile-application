@@ -40,6 +40,7 @@ const CATEGORIES = [
 type EventFormData = z.infer<typeof eventSchema>;
 
 export default function EventFormScreen() {
+  console.log('--- EventFormScreen Rendering ---');
   const { id } = useLocalSearchParams<{ id: string }>();
   const isEditing = !!id;
   const { showToast } = useToast();
@@ -58,8 +59,8 @@ export default function EventFormScreen() {
     defaultValues: {
       title: '',
       description: '',
-      starts_at: new Date(Date.now() + 86400000).toISOString().slice(0, 16), // Tomorrow
-      ends_at: new Date(Date.now() + 86400000 + 7200000).toISOString().slice(0, 16), // Tomorrow + 2 hours
+      starts_at: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+      ends_at: new Date(Date.now() + 86400000 + 7200000).toISOString(), // Tomorrow + 2 hours
       venue: '',
       address: '',
       latitude: 6.9271, // Colombo default
@@ -76,11 +77,12 @@ export default function EventFormScreen() {
 
   useEffect(() => {
     if (isEditing && event) {
+      console.log('Resetting form with event data:', event.id);
       reset({
         title: event.title,
         description: event.description,
-        starts_at: event.starts_at.slice(0, 16),
-        ends_at: event.ends_at.slice(0, 16),
+        starts_at: event.starts_at,
+        ends_at: event.ends_at,
         venue: event.venue,
         address: event.address,
         latitude: event.latitude,
@@ -95,6 +97,7 @@ export default function EventFormScreen() {
   }, [isEditing, event, reset]);
 
   const onSubmit = async (data: EventFormData) => {
+    console.log('Submitting event form:', data);
     try {
       if (isEditing) {
         await updateEvent.mutateAsync({ id, ...data });
@@ -128,7 +131,7 @@ export default function EventFormScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{isEditing ? 'Edit Event' : 'New Event'}</Text>
+        <Text style={styles.headerTitle}>{isEditing ? 'Edit Event' : 'Create New Event'}</Text>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={colors.ink} />
         </TouchableOpacity>
