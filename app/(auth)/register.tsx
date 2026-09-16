@@ -18,7 +18,7 @@ const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^(\+94|0)[0-9]{9}$/, 'Invalid phone number format (e.g. 0771234567)'),
-  password: z.string().min(8, 'Password must be at least 8 characters').regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, 'Password must contain at least one letter and one number'),
+  password: z.string().min(8, 'Password must be at least 8 characters').regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
   confirmPassword: z.string(),
   role: z.enum(['attendee', 'organizer']),
 }).refine((data) => data.password === data.confirmPassword, {

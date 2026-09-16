@@ -12,7 +12,7 @@ const router = Router();
 const registerSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters').regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, 'Password must contain at least one letter and one number'),
+  password: z.string().min(8, 'Password must be at least 8 characters').regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
   phone: z.string().regex(/^(\+94|0)[0-9]{9}$/, 'Invalid phone number format'),
   role: z.enum(['attendee', 'organizer'])
 });
