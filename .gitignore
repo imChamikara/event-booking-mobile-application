@@ -1,0 +1,27 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# macOS
+.DS_Store
+
+# Server
+server/node_modules/
+server/dist/
+server/eventhub.db
+server/eventhub.db-journal
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
