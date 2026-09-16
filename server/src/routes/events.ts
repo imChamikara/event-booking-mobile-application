@@ -29,7 +29,9 @@ const updateEventSchema = createEventSchema.partial();
 // Get all events (public)
 router.get('/', (req, res) => {
   const { search, category, minPrice, maxPrice, from, to, page = '1', limit = '10' } = req.query;
-  
+
+  console.log('Fetching events with params:', req.query);
+
   let query = 'SELECT e.*, u.name as organizer_name FROM events e JOIN users u ON e.organizer_id = u.id WHERE e.status = "published"';
   const params: any[] = [];
 
@@ -67,8 +69,10 @@ router.get('/', (req, res) => {
 
   try {
     const events = db.prepare(query).all(...params);
+    console.log(`Found ${events.length} events`);
     res.json({ success: true, data: events });
   } catch (error) {
+    console.error('Failed to fetch events:', error);
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch events' } });
   }
 });
@@ -100,7 +104,7 @@ router.post('/', requireAuth, requireRole('organizer'), validate(createEventSche
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `).run(id, req.user!.id, data.title, data.description, data.image_url, data.category, data.starts_at, data.ends_at, data.venue, data.address, data.latitude, data.longitude, data.price, data.total_seats, data.status, created_at);
     
-    const event = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+    const event = db.prepare('SELECT e.*, u.name as organizer_name FROM events e JOIN users u ON e.organizer_id = u.id WHERE e.id = ?').get(id);
     console.log('Event created successfully:', id);
     res.status(201).json({ success: true, data: event });
   } catch (error) {

@@ -144,6 +144,8 @@ export default function OrganizerDashboard() {
               icon="calendar-outline"
               title="No events yet"
               message="Create your first event to start selling tickets."
+              actionLabel="Refresh"
+              onAction={refetch}
             />
           )
         }

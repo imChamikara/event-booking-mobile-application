@@ -17,7 +17,9 @@ export const useEvents = (params?: FetchEventsParams) => {
   return useQuery({
     queryKey: ['events', params],
     queryFn: async () => {
+      console.log('Fetching events with params:', params);
       const { data } = await api.get('/events', { params });
+      console.log('Fetched events count:', data.data.length);
       return data.data as Event[];
     },
   });
@@ -38,7 +40,9 @@ export const useOrganizerEvents = () => {
   return useQuery({
     queryKey: ['organizer-events'],
     queryFn: async () => {
+      console.log('Fetching organizer events');
       const { data } = await api.get('/organizers/me/events');
+      console.log('Fetched organizer events count:', data.data.length);
       return data.data as Event[];
     },
   });

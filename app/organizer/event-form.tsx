@@ -54,7 +54,7 @@ export default function EventFormScreen() {
   const [showEndDate, setShowEndDate] = useState(false);
   const [showEndTime, setShowEndTime] = useState(false);
 
-  const { control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<EventFormData>({
+  const { control, handleSubmit, formState: { errors }, reset, watch, setValue, register } = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: '',
@@ -72,6 +72,11 @@ export default function EventFormScreen() {
       status: 'draft',
     }
   });
+
+  useEffect(() => {
+    register('latitude');
+    register('longitude');
+  }, [register]);
 
   const currentStatus = watch('status');
 
@@ -515,13 +520,14 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: 'hidden',
     height: 56,
     justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   picker: {
     height: 56,
     width: '100%',
+    color: colors.ink,
   },
   dateTimeButton: {
     flexDirection: 'row',

@@ -1,13 +1,15 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
-const dbPath = path.join(__dirname, '..', 'eventhub.db');
-const db = new Database(dbPath, { verbose: console.log });
+const dbPath = path.resolve(__dirname, '..', 'eventhub.db');
+console.log('Using database at:', dbPath);
+const db = new Database(dbPath, { verbose: (sql) => console.log('SQL:', sql) });
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
 export function initDb() {
+  console.log('Initializing database tables...');
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,

@@ -148,10 +148,10 @@ export default function HomeScreen() {
     }
     return (
       <EmptyState
-        title="No events found"
-        message="Try adjusting your filters or search term."
-        actionLabel="Clear Filters"
-        onAction={() => { setSearch(''); setCategory(''); }}
+        title={category || search ? "No events found" : "No active events"}
+        message={category || search ? "Try adjusting your filters or search term." : "Check back later for new events!"}
+        actionLabel={category || search ? "Clear Filters" : "Refresh"}
+        onAction={() => { setSearch(''); setCategory(''); refetch(); }}
       />
     );
   };
