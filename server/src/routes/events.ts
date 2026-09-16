@@ -32,7 +32,7 @@ router.get('/', (req, res) => {
 
   console.log('Fetching events with params:', req.query);
 
-  let query = 'SELECT e.*, u.name as organizer_name FROM events e JOIN users u ON e.organizer_id = u.id WHERE e.status = "published"';
+  let query = 'SELECT e.*, u.name as organizer_name FROM events e JOIN users u ON e.organizer_id = u.id WHERE LOWER(e.status) = "published"';
   const params: any[] = [];
 
   if (search) {
