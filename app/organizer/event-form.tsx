@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 
 import { colors, shadows } from '../../theme/colors';
 import { spacing, radii } from '../../theme/spacing';
@@ -18,8 +20,8 @@ import { Badge } from '../../components/Badge';
 const eventSchema = z.object({
   title: z.string().min(3, 'Title is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  starts_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Must be YYYY-MM-DDThh:mm'),
-  ends_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Must be YYYY-MM-DDThh:mm'),
+  starts_at: z.string(),
+  ends_at: z.string(),
   venue: z.string().min(3, 'Venue name is required'),
   address: z.string().min(5, 'Address is required'),
   latitude: z.number().min(-90).max(90),
@@ -30,6 +32,10 @@ const eventSchema = z.object({
   image_url: z.string().url('Must be a valid URL'),
   status: z.enum(['draft', 'published', 'cancelled']),
 });
+
+const CATEGORIES = [
+  'Music', 'Sports', 'Tech', 'Food', 'Arts', 'Business', 'Wellness', 'Education'
+];
 
 type EventFormData = z.infer<typeof eventSchema>;
 
@@ -42,7 +48,12 @@ export default function EventFormScreen() {
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
 
-  const { control, handleSubmit, formState: { errors }, reset, watch } = useForm<EventFormData>({
+  const [showStartDate, setShowStartDate] = useState(false);
+  const [showStartTime, setShowStartTime] = useState(false);
+  const [showEndDate, setShowEndDate] = useState(false);
+  const [showEndTime, setShowEndTime] = useState(false);
+
+  const { control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: '',
@@ -169,20 +180,25 @@ export default function EventFormScreen() {
 
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <Controller
-              control={control}
-              name="category"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Category"
-                  placeholder="e.g. Music"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.category?.message}
-                />
-              )}
-            />
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.pickerContainer}>
+              <Controller
+                control={control}
+                name="category"
+                render={({ field: { onChange, value } }) => (
+                  <Picker
+                    selectedValue={value}
+                    onValueChange={onChange}
+                    style={styles.picker}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <Picker.Item key={cat} label={cat} value={cat} />
+                    ))}
+                  </Picker>
+                )}
+              />
+            </View>
+            {errors.category && <Text style={styles.errorText}>{errors.category.message}</Text>}
           </View>
           <View style={{ width: spacing.md }} />
           <View style={styles.flex1}>
@@ -203,38 +219,126 @@ export default function EventFormScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Date & Time (YYYY-MM-DDThh:mm)</Text>
+        <Text style={styles.sectionTitle}>Date & Time</Text>
         <View style={styles.row}>
           <View style={styles.flex1}>
+            <Text style={styles.label}>Starts At</Text>
             <Controller
               control={control}
               name="starts_at"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Starts At"
-                  placeholder="2024-12-01T18:00"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.starts_at?.message}
-                />
+              render={({ field: { value } }) => (
+                <View>
+                  <TouchableOpacity
+                    style={styles.dateTimeButton}
+                    onPress={() => setShowStartDate(true)}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.slate} />
+                    <Text style={styles.dateTimeText}>
+                      {new Date(value).toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.dateTimeButton, { marginTop: spacing.xs }]}
+                    onPress={() => setShowStartTime(true)}
+                  >
+                    <Ionicons name="time-outline" size={20} color={colors.slate} />
+                    <Text style={styles.dateTimeText}>
+                      {new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showStartDate && (
+                    <DateTimePicker
+                      value={new Date(value)}
+                      mode="date"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowStartDate(false);
+                        if (selectedDate) {
+                          const currentDate = new Date(value);
+                          currentDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                          setValue('starts_at', currentDate.toISOString());
+                        }
+                      }}
+                    />
+                  )}
+                  {showStartTime && (
+                    <DateTimePicker
+                      value={new Date(value)}
+                      mode="time"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowStartTime(false);
+                        if (selectedDate) {
+                          const currentDate = new Date(value);
+                          currentDate.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+                          setValue('starts_at', currentDate.toISOString());
+                        }
+                      }}
+                    />
+                  )}
+                </View>
               )}
             />
           </View>
           <View style={{ width: spacing.md }} />
           <View style={styles.flex1}>
+            <Text style={styles.label}>Ends At</Text>
             <Controller
               control={control}
               name="ends_at"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Ends At"
-                  placeholder="2024-12-01T22:00"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.ends_at?.message}
-                />
+              render={({ field: { value } }) => (
+                <View>
+                  <TouchableOpacity
+                    style={styles.dateTimeButton}
+                    onPress={() => setShowEndDate(true)}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.slate} />
+                    <Text style={styles.dateTimeText}>
+                      {new Date(value).toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.dateTimeButton, { marginTop: spacing.xs }]}
+                    onPress={() => setShowEndTime(true)}
+                  >
+                    <Ionicons name="time-outline" size={20} color={colors.slate} />
+                    <Text style={styles.dateTimeText}>
+                      {new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showEndDate && (
+                    <DateTimePicker
+                      value={new Date(value)}
+                      mode="date"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowEndDate(false);
+                        if (selectedDate) {
+                          const currentDate = new Date(value);
+                          currentDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                          setValue('ends_at', currentDate.toISOString());
+                        }
+                      }}
+                    />
+                  )}
+                  {showEndTime && (
+                    <DateTimePicker
+                      value={new Date(value)}
+                      mode="time"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowEndTime(false);
+                        if (selectedDate) {
+                          const currentDate = new Date(value);
+                          currentDate.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+                          setValue('ends_at', currentDate.toISOString());
+                        }
+                      }}
+                    />
+                  )}
+                </View>
               )}
             />
           </View>
@@ -392,9 +496,51 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    marginBottom: spacing.md,
   },
   flex1: {
     flex: 1,
+  },
+  label: {
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.sm,
+    color: colors.ink,
+    marginBottom: spacing.xs,
+  },
+  pickerContainer: {
+    backgroundColor: colors.mist,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    height: 56,
+    justifyContent: 'center',
+  },
+  picker: {
+    height: 56,
+    width: '100%',
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.mist,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    height: 56,
+  },
+  dateTimeText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.md,
+    color: colors.ink,
+    marginLeft: spacing.sm,
+  },
+  errorText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.xs,
+    color: colors.error,
+    marginTop: 4,
   },
   footer: {
     padding: spacing.xl,
