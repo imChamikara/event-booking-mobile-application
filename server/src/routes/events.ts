@@ -30,10 +30,18 @@ const updateEventSchema = createEventSchema.partial();
 router.get('/', (req, res) => {
   const { search, category, minPrice, maxPrice, from, to, page = '1', limit = '10' } = req.query;
 
-  console.log('Fetching events with params:', req.query);
+  console.log('--- FETCH EVENTS REQUEST ---');
+  console.log('Params:', req.query);
 
-  let query = 'SELECT e.*, u.name as organizer_name FROM events e JOIN users u ON e.organizer_id = u.id WHERE LOWER(e.status) = "published"';
+  // DEBUG: Check what's actually in the database
+  const allEvents = db.prepare('SELECT id, title, status, starts_at FROM events').all();
+  console.log('DEBUG: All events in DB:', allEvents);
+
+  let query = 'SELECT e.*, u.name as organizer_name FROM events e JOIN users u ON e.organizer_id = u.id WHERE 1=1';
   const params: any[] = [];
+
+  // Re-add the status filter but make it more robust
+  query += ' AND (LOWER(e.status) = "published" OR e.status IS NULL OR e.status = "")';
 
   if (search) {
     query += ' AND (e.title LIKE ? OR e.description LIKE ?)';
