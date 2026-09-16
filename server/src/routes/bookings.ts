@@ -149,7 +149,7 @@ router.patch('/:id/cancel', requireAuth, (req: AuthRequest, res) => {
     console.log('Found booking, current status:', booking.status);
 
     // Update booking status
-    db.prepare('UPDATE bookings SET status = "cancelled", cancelled_at = ? WHERE id = ?').run(now, bookingId);
+    db.prepare("UPDATE bookings SET status = 'cancelled', cancelled_at = ? WHERE id = ?").run(now, bookingId);
     console.log('Updated booking status to cancelled');
 
     // Return seats to event
