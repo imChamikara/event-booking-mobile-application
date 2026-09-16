@@ -1,15 +1,26 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
-const dbPath = path.resolve(__dirname, '..', 'eventhub.db');
-console.log('Using database at:', dbPath);
+// Force database to be in the project root so it's consistent
+const projectRoot = path.resolve(__dirname, '..', '..');
+const dbPath = path.join(projectRoot, 'eventhub.db');
+
+console.log('--- DATABASE CONFIG ---');
+console.log('Project Root:', projectRoot);
+console.log('Database Path:', dbPath);
+
+if (!fs.existsSync(dbPath)) {
+    console.log('WARNING: Database file does not exist at path. It will be created.');
+}
+
 const db = new Database(dbPath, { verbose: (sql) => console.log('SQL:', sql) });
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
 export function initDb() {
-  console.log('Initializing database tables...');
+  console.log('Ensuring tables exist...');
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
