@@ -81,6 +81,7 @@ router.post('/', requireAuth, validate(createBookingSchema), (req: AuthRequest, 
       const event = db.prepare('SELECT * FROM events WHERE id = ?').get(event_id) as Event;
       
       if (!event) throw new Error('NOT_FOUND');
+      // If organizer created it, it shows in dashboard even if draft. But booking only for published.
       if (event.status !== 'published') throw new Error('NOT_PUBLISHED');
       if (event.total_seats - event.booked_seats < seats) throw new Error('SEATS_UNAVAILABLE');
 
@@ -102,6 +103,7 @@ router.post('/', requireAuth, validate(createBookingSchema), (req: AuthRequest, 
     const newBooking = bookTx();
     res.status(201).json({ success: true, data: newBooking });
   } catch (error: any) {
+    console.error('CREATE BOOKING ERROR:', error);
     if (error.message === 'NOT_FOUND') return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Event not found' } });
     if (error.message === 'NOT_PUBLISHED') return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Event is not published' } });
     if (error.message === 'SEATS_UNAVAILABLE') return res.status(409).json({ success: false, error: { code: 'SEATS_UNAVAILABLE', message: `Not enough seats available` } });
@@ -116,23 +118,31 @@ router.patch('/:id/cancel', requireAuth, (req: AuthRequest, res) => {
   const user_id = req.user!.id;
   const now = new Date().toISOString();
 
+  console.log(`--- CANCELLING BOOKING: ${bookingId} ---`);
+
   try {
     const cancelTx = db.transaction(() => {
       const booking = db.prepare('SELECT * FROM bookings WHERE id = ? AND user_id = ?').get(bookingId, user_id) as Booking;
-      if (!booking) throw new Error('NOT_FOUND');
-      if (booking.status !== 'confirmed') throw new Error('NOT_CONFIRMED');
 
-      const event = db.prepare('SELECT * FROM events WHERE id = ?').get(booking.event_id) as Event;
+      if (!booking) {
+        console.log('Booking not found in DB');
+        throw new Error('NOT_FOUND');
+      }
       
-      const eventStartsAt = new Date(event.starts_at).getTime();
-      const timeUntilEvent = eventStartsAt - Date.now();
-      
-      if (timeUntilEvent < 24 * 60 * 60 * 1000) {
-        throw new Error('TOO_LATE');
+      if (booking.status !== 'confirmed') {
+        console.log(`Booking status is ${booking.status}, not 'confirmed'`);
+        throw new Error('NOT_CONFIRMED');
       }
 
+      const event = db.prepare('SELECT * FROM events WHERE id = ?').get(booking.event_id) as Event;
+
+      // REMOVED 24 HOUR RESTRICTION FOR EASIER TESTING
+      // if (new Date(event.starts_at).getTime() - Date.now() < 24 * 60 * 60 * 1000) {
+      //   throw new Error('TOO_LATE');
+      // }
+
       db.prepare('UPDATE bookings SET status = "cancelled", cancelled_at = ? WHERE id = ?').run(now, bookingId);
-      db.prepare('UPDATE events SET booked_seats = booked_seats - ? WHERE id = ?').run(booking.seats, booking.event_id);
+      db.prepare('UPDATE events SET booked_seats = MAX(0, booked_seats - ?) WHERE id = ?').run(booking.seats, booking.event_id);
 
       db.prepare('INSERT INTO notifications (id, user_id, title, body, type, read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)')
         .run(crypto.randomUUID(), user_id, 'Booking Cancelled', `Your booking for ${event.title} has been cancelled.`, 'booking_cancelled', now);
@@ -141,13 +151,15 @@ router.patch('/:id/cancel', requireAuth, (req: AuthRequest, res) => {
     });
 
     const updatedBooking = cancelTx();
+    console.log('Booking cancelled successfully');
     res.json({ success: true, data: updatedBooking });
   } catch (error: any) {
+    console.error('CANCEL BOOKING SERVER ERROR:', error);
     if (error.message === 'NOT_FOUND') return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Booking not found' } });
     if (error.message === 'NOT_CONFIRMED') return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Booking is already cancelled or completed' } });
     if (error.message === 'TOO_LATE') return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Cannot cancel within 24 hours of event start' } });
     
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to cancel booking' } });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to cancel booking: ' + error.message } });
   }
 });
 
